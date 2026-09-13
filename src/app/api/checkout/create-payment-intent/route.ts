@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     let total = 0;
     const orderItemsData: { variantId: string; quantity: number; price: number; delivery_fee: number }[] = [];
     const deliveryFeesByProduct = new Map<string, number>();
+    const serviceSupabase = createServiceClient();
 
     for(const item of items) {
-        const serviceSupabase = createServiceClient();
         const{data: variant, error} = await serviceSupabase
         .from('product_variants')
         .select('*, products(price, delivery_fee)')
@@ -47,14 +47,17 @@ export async function POST(request: NextRequest) {
         if(error || !variant) {
             return NextResponse.json({error: 'Invalid item in cart'}, {status: 404});
         }
-        total += variant.price * item.quantity;
 
-        const deliveryFee = variant.products.delivery_fee ?? 0;
+        // variant.price is null when no per-variant override — fall back to product base price
+        const itemPrice: number = variant.price ?? (variant.products as { price: number } | null)?.price ?? 0;
+        total += itemPrice * item.quantity;
+
+        const deliveryFee = (variant.products as { delivery_fee: number | null } | null)?.delivery_fee ?? 0;
 
         orderItemsData.push({
             variantId: item.variantId,
             quantity: item.quantity,
-            price: variant.price,
+            price: itemPrice,
             delivery_fee: deliveryFee,
         });
 
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (specs) {
-        await supabase.from('custom_order_specs').insert({
+        await serviceSupabase.from('custom_order_specs').insert({
             order_id: order.id,
             measurements: specs.measurements ?? '',
             notes: specs.notes ?? '',
