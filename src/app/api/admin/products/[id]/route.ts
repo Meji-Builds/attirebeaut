@@ -3,6 +3,8 @@ import { requireAdminApi } from "@/lib/auth/require-admin-api";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 
+export const maxDuration = 60;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

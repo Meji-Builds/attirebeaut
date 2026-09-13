@@ -363,8 +363,10 @@ function ProductForm({
   const isEdit = product !== null;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [variantType, setVariantType] = useState<"size" | "length">(
-    product && product.product_variants.some((v) => v.length !== null)
+  const [variantType, setVariantType] = useState<"size" | "length" | "one-size">(
+    product && product.product_variants.some((v) => v.length === 0)
+      ? "one-size"
+      : product && product.product_variants.some((v) => v.length !== null)
       ? "length"
       : "size"
   );
@@ -406,6 +408,7 @@ function ProductForm({
       .map((v) => ({
         ...(variantType === "size" && v.size !== "" ? { size: Number(v.size) } : {}),
         ...(variantType === "length" && v.length !== "" ? { length: Number(v.length) } : {}),
+        ...(variantType === "one-size" ? { length: 0 } : {}),
         stock: Number(v.stock),
         ...(v.price !== "" ? { price: Number(v.price) } : {}),
       }));
@@ -562,27 +565,38 @@ function ProductForm({
             >
               Length
             </button>
+            <button
+              type="button"
+              onClick={() => setVariantType("one-size")}
+              className={`text-xs font-medium px-3 py-1.5 rounded transition-colors ${variantType === "one-size" ? "bg-violet-800 text-white" : "text-gray-500 hover:text-gray-800"}`}
+            >
+              One Size
+            </button>
           </div>
         </div>
 
         <div className="border border-gray-200 rounded-xl overflow-hidden">
           <div className="grid grid-cols-4 gap-0 bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500 px-3 py-2">
-            <span>{variantType === "size" ? "Size (UK)" : "Length (m)"}</span>
+            <span>{variantType === "size" ? "Size (UK)" : variantType === "length" ? "Length (m)" : "Variant"}</span>
             <span>Stock</span>
             <span>Price override (£)</span>
             <span></span>
           </div>
           {variants.map((v, i) => (
             <div key={i} className="grid grid-cols-4 gap-2 items-center px-3 py-2 border-b border-gray-100 last:border-0">
-              <input
-                type="number"
-                value={variantType === "size" ? v.size : v.length}
-                onChange={(e) => updateVariant(i, variantType === "size" ? "size" : "length", e.target.value)}
-                placeholder={variantType === "size" ? "e.g. 12" : "e.g. 1.5"}
-                step={variantType === "length" ? "0.5" : "2"}
-                min={variantType === "size" ? "8" : "0.5"}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
-              />
+              {variantType !== "one-size" ? (
+                <input
+                  type="number"
+                  value={variantType === "size" ? v.size : v.length}
+                  onChange={(e) => updateVariant(i, variantType === "size" ? "size" : "length", e.target.value)}
+                  placeholder={variantType === "size" ? "e.g. 12" : "e.g. 1.5"}
+                  step={variantType === "length" ? "0.5" : "2"}
+                  min={variantType === "size" ? "8" : "0.5"}
+                  className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
+              ) : (
+                <span className="text-sm text-gray-400 px-1">One size</span>
+              )}
               <input
                 type="number"
                 value={v.stock}
@@ -861,7 +875,7 @@ function OrderDetail({
                   <p className="text-xs text-gray-400 mt-0.5">
                     {item.product_variants?.size != null
                       ? `UK ${item.product_variants.size}`
-                      : item.product_variants?.length != null
+                      : item.product_variants?.length != null && item.product_variants.length !== 0
                       ? `${item.product_variants.length}m`
                       : ""}{" "}
                     &times; {item.quantity}

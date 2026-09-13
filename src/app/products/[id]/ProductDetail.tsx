@@ -30,7 +30,8 @@ export default function ProductDetail({
   productPath: string;
   imageUrl: string | null;
 }) {
-  const [selected, setSelected] = useState<Variant | null>(null);
+  const isOneSize = variants.length > 0 && variants.every((v) => v.length === 0);
+  const [selected, setSelected] = useState<Variant | null>(isOneSize ? variants[0] : null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const { addItem } = useCart();
@@ -67,32 +68,36 @@ export default function ProductDetail({
 
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
-        {usesSizes ? "Select size (UK)" : "Select length (metres)"}
-      </p>
+      {!isOneSize && (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+            {usesSizes ? "Select size (UK)" : "Select length (metres)"}
+          </p>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        {variants.map((v) => {
-          const outOfStock = v.stock === 0;
-          const isSelected = selected?.id === v.id;
-          return (
-            <button
-              key={v.id}
-              onClick={() => !outOfStock && setSelected(v)}
-              disabled={outOfStock}
-              className={`min-w-[3rem] h-10 px-3 text-sm font-medium border rounded-lg transition-colors ${
-                isSelected
-                  ? "border-violet-800 bg-violet-800 text-white"
-                  : outOfStock
-                  ? "border-gray-200 text-gray-300 cursor-not-allowed line-through"
-                  : "border-gray-300 text-gray-700 hover:border-violet-800 hover:text-violet-800"
-              }`}
-            >
-              {usesSizes ? `UK ${v.size}` : `${v.length}m`}
-            </button>
-          );
-        })}
-      </div>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {variants.map((v) => {
+              const outOfStock = v.stock === 0;
+              const isSelected = selected?.id === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => !outOfStock && setSelected(v)}
+                  disabled={outOfStock}
+                  className={`min-w-[3rem] h-10 px-3 text-sm font-medium border rounded-lg transition-colors ${
+                    isSelected
+                      ? "border-violet-800 bg-violet-800 text-white"
+                      : outOfStock
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed line-through"
+                      : "border-gray-300 text-gray-700 hover:border-violet-800 hover:text-violet-800"
+                  }`}
+                >
+                  {usesSizes ? `UK ${v.size}` : `${v.length}m`}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {selected && (
         <p className="text-xs text-gray-500 mb-4">
@@ -116,7 +121,7 @@ export default function ProductDetail({
             : "bg-violet-800 text-white hover:bg-violet-900 active:scale-[0.99]"
         }`}
       >
-        {busy ? "Adding..." : done ? "Added to cart" : !selected ? "Choose a size" : "Add to cart"}
+        {busy ? "Adding..." : done ? "Added to cart" : !selected ? (isOneSize ? "Out of stock" : "Choose a size") : "Add to cart"}
       </button>
     </div>
   );

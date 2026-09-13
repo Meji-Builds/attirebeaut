@@ -122,7 +122,7 @@ export default async function OrdersPage() {
                     const variantLabel =
                       item.product_variants?.size != null
                         ? `UK ${item.product_variants.size}`
-                        : item.product_variants?.length != null
+                        : item.product_variants?.length != null && item.product_variants.length !== 0
                         ? `${item.product_variants.length}m`
                         : "";
                     return (

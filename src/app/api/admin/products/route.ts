@@ -4,6 +4,8 @@ import { requireAdminApi } from "@/lib/auth/require-admin-api";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
 
   const { response } = await requireAdminApi();
@@ -88,14 +90,6 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-
-    if (variants.some((v) => v.price == null)) {
-        await supabase.from("products").delete().eq("id", product.id);
-        return NextResponse.json(
-            { error: "Every variant must have a price" },
-            { status: 400 }
-        );
-    }
 
   const { error: variantsError } = await supabase
     .from("product_variants")
