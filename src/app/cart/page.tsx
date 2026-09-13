@@ -22,8 +22,8 @@ export default function CartPage() {
         const validIds = new Set(
           (data ?? [])
             .filter((v) => {
-              const p = v.products as { is_deleted: boolean } | null;
-              return p && !p.is_deleted;
+              const p = v.products as unknown as { is_deleted: boolean } | null;
+              return p != null && !p.is_deleted;
             })
             .map((v) => v.id)
         );

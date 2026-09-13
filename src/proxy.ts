@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // Refresh the session — this updates cookies so tokens stay fresh.
+    // Refresh the session — keeps tokens fresh so users aren't logged out mid-session.
     const { data: { user } } = await supabase.auth.getUser();
 
     // Redirect unauthenticated users away from /admin
