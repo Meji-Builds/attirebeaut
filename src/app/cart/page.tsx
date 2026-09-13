@@ -2,10 +2,36 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
+import { createClient } from "@/lib/supabase/client";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, isLoaded } = useCart();
+
+  // On load, remove any items whose product has been deleted
+  useEffect(() => {
+    if (!isLoaded || items.length === 0) return;
+    const supabase = createClient();
+    const variantIds = items.map((i) => i.variantId);
+    supabase
+      .from("product_variants")
+      .select("id, products(is_deleted)")
+      .in("id", variantIds)
+      .then(({ data }) => {
+        const validIds = new Set(
+          (data ?? [])
+            .filter((v) => {
+              const p = v.products as { is_deleted: boolean } | null;
+              return p && !p.is_deleted;
+            })
+            .map((v) => v.id)
+        );
+        items.forEach((item) => {
+          if (!validIds.has(item.variantId)) removeItem(item.variantId);
+        });
+      });
+  }, [isLoaded]);
 
   function handleDecrease(variantId: string, qty: number) {
     if (qty > 1) updateQuantity(variantId, qty - 1);
@@ -104,7 +130,7 @@ export default function CartPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       {item.size != null
                         ? `UK ${item.size}`
-                        : item.length != null
+                        : item.length != null && item.length !== 0
                         ? `${item.length}m`
                         : ""}
                     </p>
