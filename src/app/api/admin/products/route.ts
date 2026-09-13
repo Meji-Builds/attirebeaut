@@ -126,7 +126,6 @@ export async function GET(request: NextRequest) {
   const { data: products, error } = await supabase
     .from("products")
     .select("*, product_variants(*)")
-    .eq("is_deleted", false)
     .order("created_at", { ascending: false });
 
   if (error) {

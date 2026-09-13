@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
     const deliveryFeesByProduct = new Map<string, number>();
 
     for(const item of items) {
-        const{data: variant, error} = await supabase
+        const serviceSupabase = createServiceClient();
+        const{data: variant, error} = await serviceSupabase
         .from('product_variants')
         .select('*, products(price, delivery_fee)')
         .eq('id', item.variantId)

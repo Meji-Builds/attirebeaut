@@ -772,12 +772,21 @@ function ProductsView() {
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-gray-900 leading-snug">{p.name}</p>
-                      {p.is_custom && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600">
-                          Made to Order
-                        </span>
-                      )}
+                      <p className={`font-medium leading-snug ${p.is_deleted ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                        {p.name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {p.is_custom && !p.is_deleted && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600">
+                            Made to Order
+                          </span>
+                        )}
+                        {p.is_deleted && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-red-500">
+                            Deleted
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
@@ -800,21 +809,25 @@ function ProductsView() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setModal(p)}
-                        className="p-1.5 text-gray-400 hover:text-violet-700 transition-colors rounded-lg hover:bg-violet-50"
-                        title="Edit"
-                      >
-                        <IconEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        disabled={deleting === p.id}
-                        className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-40"
-                        title="Delete"
-                      >
-                        <IconTrash />
-                      </button>
+                      {!p.is_deleted && (
+                        <button
+                          onClick={() => setModal(p)}
+                          className="p-1.5 text-gray-400 hover:text-violet-700 transition-colors rounded-lg hover:bg-violet-50"
+                          title="Edit"
+                        >
+                          <IconEdit />
+                        </button>
+                      )}
+                      {!p.is_deleted && (
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          disabled={deleting === p.id}
+                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-40"
+                          title="Delete"
+                        >
+                          <IconTrash />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
