@@ -1132,6 +1132,15 @@ function OrdersView() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  function openOrder(id: string) {
+    setLoadingDetail(true);
+    fetch(`/api/admin/orders/${id}`)
+      .then((r) => r.json())
+      .then((data) => { setSelected(data.order); setLoadingDetail(false); })
+      .catch(() => setLoadingDetail(false));
+  }
 
   const loadOrders = useCallback(() => {
     setLoading(true);
@@ -1246,8 +1255,9 @@ function OrdersView() {
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => setSelected(o)}
-                      className="text-xs font-medium text-violet-700 hover:text-violet-900 transition-colors"
+                      onClick={() => openOrder(o.id)}
+                      disabled={loadingDetail}
+                      className="text-xs font-medium text-violet-700 hover:text-violet-900 transition-colors disabled:opacity-50"
                     >
                       View
                     </button>

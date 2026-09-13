@@ -105,11 +105,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (specs) {
-        await serviceSupabase.from('custom_order_specs').insert({
+        const { error: specsError } = await serviceSupabase.from('custom_order_specs').insert({
             order_id: order.id,
             measurements: specs.measurements ?? '',
             notes: specs.notes ?? '',
         });
+        if (specsError) {
+            console.error('Failed to save custom order specs:', specsError.message);
+        }
     }
 
     try{
