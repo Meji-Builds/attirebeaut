@@ -25,9 +25,15 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // Refresh the session if it has expired — this updates the cookies
-    // on the response so the browser gets fresh tokens automatically.
-    await supabase.auth.getUser();
+    // Refresh the session — this updates cookies so tokens stay fresh.
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Redirect unauthenticated users away from /admin
+    if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+        const redirectUrl = new URL("/login", request.url);
+        redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
+        return NextResponse.redirect(redirectUrl);
+    }
 
     return supabaseResponse;
 }
