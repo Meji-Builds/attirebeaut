@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 
 export async function fulfillOrder(supabase: SupabaseClient, orderId: string): Promise<boolean> {
     const { data: updated } = await supabase
@@ -32,5 +33,6 @@ export async function fulfillOrder(supabase: SupabaseClient, orderId: string): P
         }
     }
 
+    revalidatePath("/orders");
     return true;
 }

@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
   paid: "bg-blue-100 text-blue-800",
