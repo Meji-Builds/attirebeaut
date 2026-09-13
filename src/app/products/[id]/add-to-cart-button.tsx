@@ -45,6 +45,8 @@ export default function AddToCartButton({
             size,
             length,
             quantity: 1,
+            imageUrl: null,
+            stock: 0,
         });
     }
 

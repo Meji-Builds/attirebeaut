@@ -56,7 +56,7 @@ export default async function OrdersPage() {
     .eq("user_id", user.id)
     .order("placed_at", { ascending: false });
 
-  const typedOrders = (orders ?? []) as Order[];
+  const typedOrders = (orders ?? []) as unknown as Order[];
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
