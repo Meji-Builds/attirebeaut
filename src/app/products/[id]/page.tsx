@@ -150,6 +150,7 @@ export default async function ProductPage({
               variants={variants}
               productPath={`/products/${id}`}
               imageUrl={product.image_url ?? null}
+              isCustom={product.is_custom ?? false}
             />
           </div>
 

@@ -27,6 +27,11 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
+  const [pendingAddressId, setPendingAddressId] = useState<string | null>(null);
+  const [specs, setSpecs] = useState({ measurements: "", notes: "" });
+  const [showSpecsForm, setShowSpecsForm] = useState(false);
+
+  const hasCustomItems = items.some((i) => i.isCustom === true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,7 +51,7 @@ export default function CheckoutPage() {
     });
   }, []);
 
-  function createPaymentIntent(addressId: string) {
+  function createPaymentIntent(addressId: string, customSpecs?: { measurements: string; notes: string }) {
     fetch("/api/checkout/create-payment-intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,6 +59,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
         userId,
         addressId,
+        specs: customSpecs,
       }),
     })
       .then((r) => r.json())
@@ -65,8 +71,13 @@ export default function CheckoutPage() {
   }
 
   function handleSelectAddress(addr: SavedAddress) {
-    setAddressSubmitted(true);
-    createPaymentIntent(addr.id);
+    if (hasCustomItems) {
+      setPendingAddressId(addr.id);
+      setShowSpecsForm(true);
+    } else {
+      setAddressSubmitted(true);
+      createPaymentIntent(addr.id);
+    }
   }
 
   function handleEditAddress(addr: SavedAddress) {
@@ -97,8 +108,73 @@ export default function CheckoutPage() {
       resolvedAddressId = newAddress.id;
     }
 
+    if (hasCustomItems) {
+      setPendingAddressId(resolvedAddressId);
+      setShowSpecsForm(true);
+    } else {
+      setAddressSubmitted(true);
+      createPaymentIntent(resolvedAddressId!);
+    }
+  }
+
+  function handleSpecsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setShowSpecsForm(false);
     setAddressSubmitted(true);
-    createPaymentIntent(resolvedAddressId!);
+    createPaymentIntent(pendingAddressId!, specs);
+  }
+
+  if (showSpecsForm) {
+    return (
+      <div className="max-w-lg mx-auto px-6 py-12">
+        <div className="flex items-center gap-3 mb-8">
+          <button
+            onClick={() => { setShowSpecsForm(false); setPendingAddressId(null); }}
+            className="text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-gray-900">Custom specifications</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Your order includes made-to-order items</p>
+          </div>
+        </div>
+        <form onSubmit={handleSpecsSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Measurements
+            </label>
+            <textarea
+              value={specs.measurements}
+              onChange={(e) => setSpecs({ ...specs, measurements: e.target.value })}
+              rows={5}
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              placeholder={"Bust: 36in\nWaist: 28in\nHips: 38in\nHeight: 5ft 6in"}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Additional notes <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={specs.notes}
+              onChange={(e) => setSpecs({ ...specs, notes: e.target.value })}
+              rows={3}
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              placeholder="Any special requests, colour preferences, etc."
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-violet-800 text-white text-sm font-semibold py-3 rounded-lg hover:bg-violet-900 transition-colors"
+          >
+            Continue to payment
+          </button>
+        </form>
+      </div>
+    );
   }
 
   if (checkingAuth) {

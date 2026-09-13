@@ -24,11 +24,13 @@ export default function ProductDetail({
   variants,
   productPath,
   imageUrl,
+  isCustom,
 }: {
   product: Product;
   variants: Variant[];
   productPath: string;
   imageUrl: string | null;
+  isCustom?: boolean;
 }) {
   const isOneSize = variants.length > 0 && variants.every((v) => v.length === 0);
   const [selected, setSelected] = useState<Variant | null>(isOneSize ? variants[0] : null);
@@ -60,6 +62,7 @@ export default function ProductDetail({
       quantity: 1,
       imageUrl,
       stock: selected.stock,
+      isCustom: isCustom ?? false,
     });
     setBusy(false);
     setDone(true);

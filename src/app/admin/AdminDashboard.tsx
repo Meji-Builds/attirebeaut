@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -56,6 +56,14 @@ interface Order {
       products: { name: string } | null;
     } | null;
   }[];
+  custom_order_specs: { id: string; measurements: string; notes: string }[] | null;
+}
+
+interface OrderMessage {
+  id: string;
+  sender_role: "admin" | "buyer";
+  body: string;
+  created_at: string;
 }
 
 interface AnalyticsData {
@@ -75,7 +83,8 @@ interface VariantRow {
 
 const NEXT_STATUSES: Record<string, string[]> = {
   pending: ["paid", "cancelled"],
-  paid: ["shipped", "cancelled"],
+  paid: ["in_production", "shipped", "cancelled"],
+  in_production: ["shipped", "cancelled"],
   shipped: ["delivered"],
   delivered: [],
   cancelled: [],
@@ -84,9 +93,19 @@ const NEXT_STATUSES: Record<string, string[]> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
   paid: "bg-blue-100 text-blue-800",
+  in_production: "bg-orange-100 text-orange-800",
   shipped: "bg-violet-100 text-violet-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  in_production: "In Production",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 // ─── Icon helpers ─────────────────────────────────────────────────────────────
@@ -161,7 +180,7 @@ function IconPhoto() {
 function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-block text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-lg ${STATUS_COLORS[status] ?? "bg-gray-100 text-gray-600"}`}>
-      {status}
+      {STATUS_LABELS[status] ?? status}
     </span>
   );
 }
@@ -203,7 +222,7 @@ function AnalyticsView() {
     );
   }
 
-  const statuses = ["pending", "paid", "shipped", "delivered", "cancelled"];
+  const statuses = ["pending", "paid", "in_production", "shipped", "delivered", "cancelled"];
 
   return (
     <div className="p-8 space-y-8">
@@ -821,7 +840,47 @@ function OrderDetail({
 }) {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<OrderMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const nextStatuses = NEXT_STATUSES[order.status] ?? [];
+
+  const specs = Array.isArray(order.custom_order_specs) && order.custom_order_specs.length > 0
+    ? order.custom_order_specs[0]
+    : null;
+
+  useEffect(() => {
+    if (specs) fetchMessages();
+  }, [order.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function fetchMessages() {
+    const res = await fetch(`/api/admin/orders/${order.id}/messages`);
+    if (res.ok) {
+      const data = await res.json();
+      setMessages(data.messages ?? []);
+    }
+  }
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    setSending(true);
+    const res = await fetch(`/api/admin/orders/${order.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: newMessage.trim() }),
+    });
+    if (res.ok) {
+      setNewMessage("");
+      await fetchMessages();
+    }
+    setSending(false);
+  }
 
   async function updateStatus(status: string) {
     setUpdating(true);
@@ -854,14 +913,20 @@ function OrderDetail({
             {order.id.slice(0, 8).toUpperCase()}
           </h2>
         </div>
-        <div className="ml-2">
+        <div className="ml-2 flex items-center gap-2">
           <StatusBadge status={order.status} />
+          {specs && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+              Custom
+            </span>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Order items */}
+        {/* Left column: items + specs + messages */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Order items */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               Items
@@ -901,6 +966,85 @@ function OrderDetail({
               </div>
             </div>
           </div>
+
+          {/* Custom specs */}
+          {specs && (
+            <div className="border border-violet-200 bg-violet-50 rounded-xl p-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-violet-600 mb-4">
+                Customer Specifications
+              </p>
+              {specs.measurements && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Measurements
+                  </p>
+                  <p className="text-sm text-gray-800 whitespace-pre-line">{specs.measurements}</p>
+                </div>
+              )}
+              {specs.notes && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Additional notes
+                  </p>
+                  <p className="text-sm text-gray-800 whitespace-pre-line">{specs.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Messages */}
+          {specs && (
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Messages with customer
+              </div>
+              <div className="p-4 space-y-3 min-h-[80px] max-h-72 overflow-y-auto">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">
+                    No messages yet.
+                  </p>
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.sender_role === "admin" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-xl px-4 py-2.5 ${
+                          msg.sender_role === "admin"
+                            ? "bg-violet-800 text-white"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        <p className="text-sm">{msg.body}</p>
+                        <p className={`text-[10px] mt-1 ${msg.sender_role === "admin" ? "text-violet-200" : "text-gray-400"}`}>
+                          {msg.sender_role === "admin" ? "You" : "Customer"} ·{" "}
+                          {new Date(msg.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              <form onSubmit={sendMessage} className="border-t border-gray-100 p-3 flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Send a message to the customer..."
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim() || sending}
+                  className="bg-violet-800 disabled:bg-violet-300 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -954,7 +1098,7 @@ function OrderDetail({
                     disabled={updating}
                     className="w-full text-left text-sm font-medium border border-gray-200 rounded-lg px-3 py-2 hover:border-violet-400 hover:text-violet-800 transition-colors disabled:opacity-40"
                   >
-                    Mark as {s}
+                    Mark as {STATUS_LABELS[s] ?? s}
                   </button>
                 ))}
               </div>
@@ -968,7 +1112,7 @@ function OrderDetail({
 
 // ─── Orders view ──────────────────────────────────────────────────────────────
 
-const ORDER_STATUSES = ["all", "pending", "paid", "shipped", "delivered", "cancelled"] as const;
+const ORDER_STATUSES = ["all", "pending", "paid", "in_production", "shipped", "delivered", "cancelled"] as const;
 
 function OrdersView() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -1057,10 +1201,19 @@ function OrdersView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((o) => (
+              {filtered.map((o) => {
+                const isCustomOrder = Array.isArray(o.custom_order_specs) && o.custom_order_specs.length > 0;
+                return (
                 <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-600">
-                    {o.id.slice(0, 8).toUpperCase()}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs text-gray-600">{o.id.slice(0, 8).toUpperCase()}</span>
+                      {isCustomOrder && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                     {new Date(o.placed_at).toLocaleDateString("en-GB", {
@@ -1087,7 +1240,8 @@ function OrdersView() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

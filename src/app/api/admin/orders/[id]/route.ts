@@ -5,7 +5,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["paid", "cancelled"],
-  paid: ["shipped", "cancelled"],
+  paid: ["in_production", "shipped", "cancelled"],
+  in_production: ["shipped", "cancelled"],
   shipped: ["delivered"],
   delivered: [],
   cancelled: [],
@@ -24,7 +25,7 @@ export async function GET(
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "*, addresses(*), order_items(*, product_variants(*, products(name, image_url)))"
+      "*, addresses(*), order_items(*, product_variants(*, products(name, image_url))), custom_order_specs(*)"
     )
     .eq("id", id)
     .single();

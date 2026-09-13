@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const { data: orders, error } = await supabase
     .from("orders")
     .select(
-      "*, addresses(*), order_items(*, product_variants(*, products(name, image_url)))"
+      "*, addresses(*), order_items(*, product_variants(*, products(name, image_url))), custom_order_specs(id)"
     )
     .order("placed_at", { ascending: false });
 

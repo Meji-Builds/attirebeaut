@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const items: {variantId: string; quantity:number }[] = body.items;
     const userId: string = body.userId;
     const addressId: string = body.addressId;
+    const specs: { measurements: string; notes: string } | undefined = body.specs;
     const supabase = await createClient();
 
     if (!userId || !addressId) {
@@ -98,6 +99,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Could not create order items' },{ status: 500 })
     }
 
+    if (specs) {
+        await supabase.from('custom_order_specs').insert({
+            order_id: order.id,
+            measurements: specs.measurements ?? '',
+            notes: specs.notes ?? '',
+        });
+    }
+
     try{
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(grandTotal * 100), //pence
@@ -105,7 +114,7 @@ export async function POST(request: NextRequest) {
             metadata: { orderId: order.id },
         });
 
-        return NextResponse.json({clientSecret: paymentIntent.client_secret});
+        return NextResponse.json({clientSecret: paymentIntent.client_secret, orderId: order.id});
     } catch(error) {
         const message = error instanceof Error ? error.message : 'Something went wrong';
         return NextResponse.json({error: message}, {status: 400});

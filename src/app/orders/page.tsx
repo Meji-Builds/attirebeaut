@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
   paid: "bg-blue-100 text-blue-800",
+  in_production: "bg-orange-100 text-orange-800",
   shipped: "bg-violet-100 text-violet-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
@@ -15,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
   paid: "Paid",
+  in_production: "In Production",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
@@ -38,6 +40,7 @@ type Order = {
   delivery_fee: number;
   placed_at: string;
   order_items: OrderItem[];
+  custom_order_specs: { id: string }[] | null;
 };
 
 export default async function OrdersPage() {
@@ -53,7 +56,7 @@ export default async function OrdersPage() {
   const { data: orders } = await supabase
     .from("orders")
     .select(
-      "id, status, total, delivery_fee, placed_at, order_items(id, quantity, price, product_variants(size, length, products(name)))"
+      "id, status, total, delivery_fee, placed_at, order_items(id, quantity, price, product_variants(size, length, products(name))), custom_order_specs(id)"
     )
     .eq("user_id", user.id)
     .order("placed_at", { ascending: false });
@@ -84,18 +87,27 @@ export default async function OrdersPage() {
             const grandTotal = Number(order.total) + Number(order.delivery_fee);
             const statusColor = STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-600";
             const statusLabel = STATUS_LABELS[order.status] ?? order.status;
+            const isCustom = Array.isArray(order.custom_order_specs) && order.custom_order_specs.length > 0;
 
             return (
-              <div
+              <Link
                 key={order.id}
-                className="border border-gray-200 rounded-xl p-5"
+                href={`/orders/${order.id}`}
+                className="block border border-gray-200 rounded-xl p-5 hover:border-violet-300 transition-colors"
               >
                 {/* Header row */}
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <p className="text-xs font-mono text-gray-400 mb-0.5 tracking-widest">
-                      {order.id.slice(0, 8).toUpperCase()}
-                    </p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-xs font-mono text-gray-400 tracking-widest">
+                        {order.id.slice(0, 8).toUpperCase()}
+                      </p>
+                      {isCustom && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400">
                       {new Date(order.placed_at).toLocaleDateString("en-GB", {
                         day: "numeric",
@@ -144,8 +156,9 @@ export default async function OrdersPage() {
                 {/* Totals */}
                 <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
                   <span>Subtotal £{Number(order.total).toFixed(2)} + Delivery £{Number(order.delivery_fee).toFixed(2)}</span>
+                  <span className="text-violet-600 font-medium">View →</span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
