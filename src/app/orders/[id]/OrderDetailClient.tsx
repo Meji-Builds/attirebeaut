@@ -48,7 +48,7 @@ type OrderData = {
     delivery_fee: number;
     placed_at: string;
     order_items: OrderItem[];
-    custom_order_specs: Specs[] | null;
+    custom_order_specs: Specs | Specs[] | null;
 };
 
 export default function OrderDetailClient({
@@ -63,8 +63,9 @@ export default function OrderDetailClient({
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const specs = Array.isArray(order.custom_order_specs)
-        ? (order.custom_order_specs[0] ?? null)
+    const rawSpecs = order.custom_order_specs;
+    const specs = rawSpecs
+        ? (Array.isArray(rawSpecs) ? (rawSpecs[0] ?? null) : rawSpecs)
         : null;
 
     const grandTotal = Number(order.total) + Number(order.delivery_fee);
