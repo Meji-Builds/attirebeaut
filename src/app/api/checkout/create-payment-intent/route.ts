@@ -105,13 +105,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (specs) {
+        const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+        console.log('[specs] saving for order', order.id, 'service_key_present:', hasServiceKey);
         const { error: specsError } = await serviceSupabase.from('custom_order_specs').insert({
             order_id: order.id,
             measurements: specs.measurements ?? '',
             notes: specs.notes ?? '',
         });
         if (specsError) {
-            console.error('Failed to save custom order specs:', specsError.message);
+            console.error('[specs] INSERT failed:', specsError.message, 'code:', specsError.code);
+        } else {
+            console.log('[specs] saved ok');
         }
     }
 

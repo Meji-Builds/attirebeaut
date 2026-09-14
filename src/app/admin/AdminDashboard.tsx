@@ -56,7 +56,7 @@ interface Order {
       products: { name: string } | null;
     } | null;
   }[];
-  custom_order_specs: { id: string; measurements: string; notes: string }[] | null;
+  custom_order_specs: { id: string; measurements: string; notes: string } | { id: string; measurements: string; notes: string }[] | null;
 }
 
 interface OrderMessage {
@@ -859,8 +859,9 @@ function OrderDetail({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const nextStatuses = NEXT_STATUSES[order.status] ?? [];
 
-  const specs = Array.isArray(order.custom_order_specs) && order.custom_order_specs.length > 0
-    ? order.custom_order_specs[0]
+  const rawSpecs = order.custom_order_specs;
+  const specs = rawSpecs
+    ? (Array.isArray(rawSpecs) ? (rawSpecs.length > 0 ? rawSpecs[0] : null) : rawSpecs)
     : null;
 
   useEffect(() => {
@@ -1224,7 +1225,9 @@ function OrdersView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((o) => {
-                const isCustomOrder = Array.isArray(o.custom_order_specs) && o.custom_order_specs.length > 0;
+                const isCustomOrder = o.custom_order_specs
+                  ? (Array.isArray(o.custom_order_specs) ? o.custom_order_specs.length > 0 : true)
+                  : false;
                 return (
                 <tr key={o.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
