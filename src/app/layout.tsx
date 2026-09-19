@@ -21,10 +21,41 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+const BASE_URL = "https://attirebeaut.vercel.app";
+
 export const metadata: Metadata = {
-  title: "AttireBeaut",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "AttireBeaut — African Fashion, Elevated",
+    template: "%s | AttireBeaut",
+  },
   description:
-    "Celebrating African fashion. Ready-to-wear, traditional garments, Ankara fabrics and bespoke custom outfits.",
+    "Shop African fashion at AttireBeaut. Ready-to-wear garments, traditional Ankara fabrics, Aso oke, Agbada, and bespoke custom outfits made to order. Delivered UK-wide.",
+  keywords: [
+    "African fashion UK",
+    "Ankara fabric",
+    "Aso oke",
+    "Agbada",
+    "traditional African wear",
+    "ready to wear African clothing",
+    "bespoke African outfits",
+    "African clothing online",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "AttireBeaut",
+    title: "AttireBeaut — African Fashion, Elevated",
+    description:
+      "Ready-to-wear, traditional garments, Ankara fabrics and bespoke custom outfits celebrating African fashion.",
+    url: BASE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AttireBeaut — African Fashion, Elevated",
+    description:
+      "Ready-to-wear, traditional garments, Ankara fabrics and bespoke custom outfits celebrating African fashion.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

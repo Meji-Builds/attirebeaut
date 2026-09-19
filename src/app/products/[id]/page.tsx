@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import ProductDetail from "./ProductDetail";
+import type { Metadata } from "next";
+
+const BASE_URL = "https://attirebeaut.vercel.app";
 
 const CATEGORY_LABELS: Record<string, string> = {
   ready_to_wear: "Ready to Wear",
@@ -10,6 +13,47 @@ const CATEGORY_LABELS: Record<string, string> = {
   fabric: "Fabric",
   accessory: "Accessory",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: product } = await supabase
+    .from("products")
+    .select("name, description, price, image_url, type")
+    .eq("id", id)
+    .eq("is_deleted", false)
+    .single();
+
+  if (!product) return {};
+
+  const title = `${product.name} | AttireBeaut`;
+  const description =
+    product.description ||
+    `Buy ${product.name} — ${CATEGORY_LABELS[product.type] ?? "African fashion"} at AttireBeaut.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/products/${id}`,
+      siteName: "AttireBeaut",
+      images: product.image_url ? [{ url: product.image_url }] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: product.image_url ? [product.image_url] : [],
+    },
+  };
+}
 
 export default async function ProductPage({
   params,
@@ -30,8 +74,29 @@ export default async function ProductPage({
 
   const variants = product.product_variants ?? [];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description ?? undefined,
+    image: product.image_url ?? undefined,
+    url: `${BASE_URL}/products/${id}`,
+    brand: { "@type": "Brand", name: "AttireBeaut" },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "GBP",
+      price: Number(product.price).toFixed(2),
+      availability: "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: "AttireBeaut" },
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-400 mb-8">
         <Link href="/" className="hover:text-gray-700 transition-colors">
