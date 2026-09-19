@@ -29,8 +29,17 @@ function LoginForm() {
       setLoading(false);
       return;
     }
-    const redirect = searchParams.get("redirect") ?? "/";
-    router.push(redirect);
+    const redirectTo = searchParams.get("redirect");
+    if (redirectTo) {
+      router.push(redirectTo);
+      router.refresh();
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .single();
+    router.push(profile?.role === "admin" ? "/admin" : "/");
     router.refresh();
   }
 
