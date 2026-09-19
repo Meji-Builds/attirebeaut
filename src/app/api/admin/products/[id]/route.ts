@@ -138,6 +138,17 @@ export async function PATCH(
     await supabase.from("product_variants").delete().eq("product_id", id);
 
     if (variants.length > 0) {
+      for (const v of variants) {
+        const hasSize = v.size != null;
+        const hasLength = v.length != null;
+        if (hasSize === hasLength) {
+          return NextResponse.json(
+            { error: "Each variant must have exactly one of: size or length." },
+            { status: 400 }
+          );
+        }
+      }
+
       const { error: variantsError } = await supabase
         .from("product_variants")
         .insert(
@@ -146,7 +157,7 @@ export async function PATCH(
             size: v.size ?? null,
             length: v.length ?? null,
             stock: v.stock,
-            price: v.price,
+            price: v.price ?? null,
           }))
         );
 

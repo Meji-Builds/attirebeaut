@@ -422,15 +422,36 @@ function ProductForm({
     const form = e.currentTarget;
     const fd = new FormData(form);
 
-    const variantsData = variants
-      .filter((v) => v.stock !== "")
-      .map((v) => ({
-        ...(variantType === "size" && v.size !== "" ? { size: Number(v.size) } : {}),
-        ...(variantType === "length" && v.length !== "" ? { length: Number(v.length) } : {}),
-        ...(variantType === "one-size" ? { length: 0 } : {}),
-        stock: Number(v.stock),
-        ...(v.price !== "" ? { price: Number(v.price) } : {}),
-      }));
+    const filledVariants = variants.filter((v) => v.stock !== "");
+
+    if (filledVariants.length === 0) {
+      setError("Add at least one variant with a stock quantity.");
+      setSaving(false);
+      return;
+    }
+
+    if (variantType !== "one-size") {
+      const missingDimension = filledVariants.some((v) =>
+        variantType === "size" ? v.size === "" : v.length === ""
+      );
+      if (missingDimension) {
+        setError(
+          variantType === "size"
+            ? "Every variant needs a UK size value."
+            : "Every variant needs a length value."
+        );
+        setSaving(false);
+        return;
+      }
+    }
+
+    const variantsData = filledVariants.map((v) => ({
+      ...(variantType === "size" ? { size: Number(v.size) } : {}),
+      ...(variantType === "length" ? { length: Number(v.length) } : {}),
+      ...(variantType === "one-size" ? { length: 0 } : {}),
+      stock: Number(v.stock),
+      ...(v.price !== "" ? { price: Number(v.price) } : {}),
+    }));
 
     fd.set("variants", JSON.stringify(variantsData));
     fd.set("is_custom", form.querySelector<HTMLInputElement>('[name="is_custom"]')?.checked ? "true" : "false");
@@ -611,6 +632,7 @@ function ProductForm({
                   placeholder={variantType === "size" ? "e.g. 12" : "e.g. 1.5"}
                   step={variantType === "length" ? "0.5" : "2"}
                   min={variantType === "size" ? "8" : "0.5"}
+                  required
                   className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
               ) : (

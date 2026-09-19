@@ -91,6 +91,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  for (const v of variants) {
+    const hasSize = v.size != null;
+    const hasLength = v.length != null;
+    if (hasSize === hasLength) {
+      await supabase.from("products").delete().eq("id", product.id);
+      return NextResponse.json(
+        { error: "Each variant must have exactly one of: size or length." },
+        { status: 400 }
+      );
+    }
+  }
+
   const { error: variantsError } = await supabase
     .from("product_variants")
     .insert(
@@ -99,7 +111,7 @@ export async function POST(request: NextRequest) {
         size: v.size ?? null,
         length: v.length ?? null,
         stock: v.stock,
-        price: v.price,
+        price: v.price ?? null,
       }))
     );
 
